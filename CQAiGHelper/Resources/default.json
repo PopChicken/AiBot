@@ -1,0 +1,40 @@
+﻿{
+  "nickname": "爱梅斯",
+
+  "master": "1035522103",
+  "mastersNickname": "",
+
+  "isLinkGeneratorEnabled": "true",
+  "isPhonographEnabled": "true",
+  "isSleepHelperEnabled": "true",
+  "isRepeaterEnabled": "true",
+  "isSoloEnabled":  "true",
+
+  "phonograph": {
+    "platform": "Netease",
+    "withLink": "false"
+  },
+  "repeater": {
+    "repeatChance": 0.4,
+    "cooldown": 10000,
+    "ban": [
+      "透jn"
+    ]
+  },
+  "sleepHelper": {
+    "launchTime": "0:00:00",
+    "timeSpan": {
+      "hour": 7,
+      "minute": 0,
+      "getup": "8:00:00"
+    }
+  },
+  "solo": {
+    "validSpan": 60000
+  },
+  "jnProtector": {
+    "blacklist": [
+      "341676471"
+    ]
+  }
+}
