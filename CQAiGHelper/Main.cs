@@ -69,6 +69,10 @@ namespace vip.popop.pcr.GHelper {
 
         public int ValidSpan { get; set; }
 
+        public int CheckTime { get; set; }
+
+        public int MaxStack { get; set; }
+
     }
 
     public static class Main {
@@ -143,7 +147,9 @@ namespace vip.popop.pcr.GHelper {
 
             if (Config.IsSoloEnabled) {
                 solo = new Solo {
-                    validSpan = Config.Solo.ValidSpan
+                    validSpan = Config.Solo.ValidSpan,
+                    checkTime = Config.Solo.CheckTime,
+                    maxStack = Config.Solo.MaxStack
                 };
                 solo.OnInitialize();
             }

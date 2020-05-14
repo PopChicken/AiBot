@@ -30,7 +30,9 @@
     }
   },
   "solo": {
-    "validSpan": 60000
+    "validSpan": 300000,
+    "checkTime": 10000,
+    "maxStack": 5
   },
   "jnProtector": {
     "blacklist": [

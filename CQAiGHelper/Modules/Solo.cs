@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Timers;
 using vip.popop.pcr.GHelper.Utilities;
 
 namespace vip.popop.pcr.GHelper.Modules {
@@ -20,6 +21,8 @@ namespace vip.popop.pcr.GHelper.Modules {
 
             public long timeLeft;
 
+            public int stack;
+
         }
 
         Dictionary<long, Dictionary<long, Challenge>> Challenges = new Dictionary<long, Dictionary<long, Challenge>>();
@@ -28,17 +31,39 @@ namespace vip.popop.pcr.GHelper.Modules {
 
         public int validSpan { get; set; }
 
+        public int checkTime { get; set; }
+
+        public int maxStack { get; set; }
+
         private static readonly List<Regex> Commands = new List<Regex> {
             new Regex(@"\A拼点\z"),
             new Regex(@"\[(.*)\]\s*拼点\s*\z"),
             new Regex(@"\[(.*)\]\s*不拼\s*\z"),
             new Regex(@"\A\s*弃拼\s*\z"),
             new Regex(@"\A\s*查战书\s*\z"),
-            new Regex(@"\[(.*)\]\s*大拼点\s*\z"),
+            new Regex(@"\[(.*)\]\s*(\d+倍)*大拼点*\s*\z"),
         };
 
         public void OnInitialize() {
             Event_GroupMessage.OnGroupMessage += OnGroupMessage;
+            Timer t = new Timer(checkTime);
+            t.Elapsed += new ElapsedEventHandler((_s, _e) => RequestTimeOut(_s, _e));
+            t.AutoReset = true;
+            t.Enabled = true;
+        }
+
+        public void RequestTimeOut(object o, ElapsedEventArgs e) {
+            foreach (long g in Requests.Keys) {
+                foreach (HashSet<long> r in Requests[g].Values) {
+                    foreach (long id in r) {
+                        if (Challenges[g][id].timeLeft <= checkTime) {
+                            r.Remove(id);
+                            Challenges[g].Remove(id);
+                        }
+                        Challenges[g][id].timeLeft -= checkTime;
+                    }
+                }
+            }
         }
 
         public void OnGroupMessage(object sender, CQGroupMessageEventArgs e) {
@@ -75,12 +100,26 @@ namespace vip.popop.pcr.GHelper.Modules {
                 if (toId == e.FromQQ.Id) { //查自雷
                     Ai.Reply(e, e.FromQQ.CQCode_At(), " 不可以自雷的哦");
                 } else {
+
+                    bool haveStack = m.Groups.Count == 3 && m.Groups[2].Value.Trim(' ').Length > 0;
+                    int wantedStack = 1;
+                    if (bigPin && haveStack) int.TryParse(m.Groups[2].Value.Substring(0, m.Groups[2].Value.Length - 1), out wantedStack);
+
                     if (!Requests[groupId].ContainsKey(fromId)) {
                         Requests[groupId].Add(fromId, new HashSet<long>());
                     }
 
                     if (Requests[groupId][fromId].Contains(toId)) {
+
+                        int originStack = Challenges[groupId][toId].stack;
+                        bool matched = false;
                         if (bigPin == Challenges[groupId][toId].bigPin) {
+                            if (bigPin && wantedStack == originStack) {
+                                matched = true;
+                            } else if (!bigPin) matched = true;
+                        }
+
+                        if (matched) {
                             CQCode attackerAt = new CQCode(CQFunction.At, new KeyValuePair<string, string>("qq", toId.ToString()));
                             CQCode defenderAt = e.FromQQ.CQCode_At();
                             CQCode winnerAt, loserAt;
@@ -123,24 +162,32 @@ namespace vip.popop.pcr.GHelper.Modules {
                             Ai.Reply(e, roundMsg);
 
                             if (Challenges[groupId][toId].bigPin && loserId != null) {
-                                e.FromGroup.SetGroupMemberBanSpeak(loserId ?? 0, TimeSpan.FromMinutes(Math.Abs(attack - defend)));
+                                e.FromGroup.SetGroupMemberBanSpeak(loserId ?? 0, TimeSpan.FromMinutes(Math.Abs(attack - defend) * originStack));
                             }
 
                             Challenges[groupId].Remove(toId);
                             Requests[groupId][fromId].Remove(toId);
 
                         } else {
-                            Ai.Reply(e, $"挑战类型是{(Challenges[groupId][toId].bigPin ? "大拼点" : "拼点")}", Environment.NewLine, "请使用对应指令哦~");
+                            string type = "拼点";
+                            if (Challenges[groupId][toId].bigPin) {
+                                if (Challenges[groupId][toId].stack > 1) type = $"{Challenges[groupId][toId].stack}倍大拼点";
+                                else type = "大拼点";
+                            }
+                            Ai.Reply(e, $"挑战类型是{type}", Environment.NewLine, "请使用对应指令哦~");
                         }
 
                     } else {
                         if (Challenges[groupId].ContainsKey(fromId)) {
-                            Ai.Reply(e, e.FromQQ.CQCode_At(), $" 你已经向 {Challenges[groupId][fromId].toId} 拼点了，发送 弃拼 可以放弃哦~");
+                            Ai.Reply(e, e.FromQQ.CQCode_At(), $" 你已经向 {e.FromGroup.GetGroupMemberInfo(Challenges[groupId][fromId].toId).Nick} 拼点了，发送 弃拼 可以放弃哦~");
+                        } else if (bigPin && haveStack && (wantedStack <= 1 || wantedStack > maxStack)) {
+                            Ai.Reply(e, e.FromQQ.CQCode_At(), $" 倍率只可以是{2}到{maxStack}范围内的整数哦~");
                         } else {
                             Challenges[groupId].Add(fromId, new Challenge {
                                 bigPin = bigPin,
                                 toId = toId,
-                                timeLeft = 300000
+                                timeLeft = validSpan,
+                                stack = wantedStack
                             });
                             if (!Requests[groupId].ContainsKey(toId)) {
                                 Requests[groupId].Add(toId, new HashSet<long>());
@@ -174,11 +221,13 @@ namespace vip.popop.pcr.GHelper.Modules {
                 if (!Requests[groupId].ContainsKey(fromId) || Requests[groupId][fromId].Count == 0) {
                     Ai.Reply(e, e.FromQQ.CQCode_At(), $" 你没有等待回应的战书哦~");
                 } else {
-                    string reply = "";
+                    string reply = Environment.NewLine + "挑战者  类型  有效时间" + Environment.NewLine;
                     foreach (long req in Requests[groupId][fromId]) {
-                        reply += req.ToString() + " ";
+                        reply += e.FromGroup.GetGroupMemberInfo(req).Nick + " " +
+                            (Challenges[groupId][req].bigPin ? $"{(Challenges[groupId][req].stack == 1 ? "" : $"{Challenges[groupId][req].stack}倍")}大拼点" : "拼点") + " "
+                            + Math.Ceiling(Challenges[groupId][req].timeLeft / 60000.0) + "分钟" + Environment.NewLine;
                     }
-                    Ai.Reply(e, " 目前向你挑战的人有: ", reply);
+                    Ai.Reply(e, " 目前你收到的战书有: ", reply);
                 }
             }
         }
