@@ -9,9 +9,10 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>vip.popop.pcr.GHelper</RootNamespace>
     <AssemblyName>vip.popop.pcr.GHelper</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -42,6 +43,7 @@
     <Reference Include="F23.StringSimilarity, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\F23.StringSimilarity.3.1.0\lib\netstandard1.0\F23.StringSimilarity.dll</HintPath>
     </Reference>
+    <Reference Include="MySql.Data, Version=8.0.20.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL" />
     <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.12.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -63,11 +65,16 @@
   <ItemGroup>
     <Compile Include="EventHandler.cs" />
     <Compile Include="Main.cs" />
+    <Compile Include="Modules\Auth\Account.cs" />
+    <Compile Include="Modules\DBHelper.cs" />
     <Compile Include="Modules\Dictionary.cs" />
+    <Compile Include="Modules\Forest.cs" />
     <Compile Include="Modules\LinkGenerator.cs" />
+    <Compile Include="Modules\MasterHelper.cs" />
     <Compile Include="Modules\Phonograph.cs" />
     <Compile Include="Modules\Repeater.cs" />
     <Compile Include="Modules\SleepHelper.cs" />
+    <Compile Include="Modules\LetThemOut.cs" />
     <Compile Include="Modules\Solo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utilities\Ai.cs" />
@@ -82,5 +89,6 @@
     <None Include="packages.config" />
     <EmbeddedResource Include="Resources\default.json" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

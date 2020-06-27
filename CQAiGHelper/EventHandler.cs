@@ -31,7 +31,7 @@ namespace vip.popop.pcr.GHelper {
         public static event EventsHandler OnAppEnable;
 
         public void AppEnable(object sender, CQAppEnableEventArgs e) {
-            Main.Initialize();
+            Main.Initialize(e.CQLog);
             OnAppEnable?.Invoke(sender, e);
         }
     }

@@ -29,6 +29,8 @@ namespace vip.popop.pcr.GHelper.Modules {
 
         Dictionary<long, Dictionary<long, HashSet<long>>> Requests = new Dictionary<long, Dictionary<long, HashSet<long>>>();
 
+        Dictionary<long, HashSet<long>> Prison = new Dictionary<long, HashSet<long>>();
+
         public int validSpan { get; set; }
 
         public int checkTime { get; set; }
@@ -42,6 +44,7 @@ namespace vip.popop.pcr.GHelper.Modules {
             new Regex(@"\A\s*弃拼\s*\z"),
             new Regex(@"\A\s*查战书\s*\z"),
             new Regex(@"\[(.*)\]\s*(\d+倍)*大拼点*\s*\z"),
+            new Regex(@"\A都给爷解\z")
         };
 
         public void OnInitialize() {
@@ -78,6 +81,11 @@ namespace vip.popop.pcr.GHelper.Modules {
 
         public void OnGroupMessage(object sender, CQGroupMessageEventArgs e) {
             try {
+
+                if (!Prison.ContainsKey(e.FromGroup.Id)) {
+                    Prison.Add(e.FromGroup.Id, new HashSet<long>());
+                } else if (Prison[e.FromGroup.Id].Contains(e.FromQQ.Id)) Prison[e.FromGroup.Id].Remove(e.FromQQ.Id);
+
                 string msg = e.Message;
                 long fromId = e.FromQQ.Id;
                 long groupId = e.FromGroup.Id;
@@ -138,7 +146,7 @@ namespace vip.popop.pcr.GHelper.Modules {
 
                                 string roundMsg = "";
 
-                                roundMsg += attackerAt + " 与 " + defenderAt + (Challenges[groupId][toId].bigPin ? " 堵上尊严" : " ") + "的对决开始了！" + Environment.NewLine;
+                                roundMsg += attackerAt + " 与 " + defenderAt + (Challenges[groupId][toId].bigPin ? " 赌上尊严" : " ") + "的对决开始了！" + Environment.NewLine;
 
                                 Random rad = new Random();
                                 int attack = rad.Next(1, 7);
@@ -173,6 +181,7 @@ namespace vip.popop.pcr.GHelper.Modules {
 
                                 if (Challenges[groupId][toId].bigPin && loserId != null) {
                                     e.FromGroup.SetGroupMemberBanSpeak(loserId ?? 0, TimeSpan.FromMinutes(Math.Abs(attack - defend) * originStack));
+                                    Prison[groupId].Add((long)loserId);
                                 }
 
                                 RemovePairing(groupId, toId, fromId);
@@ -231,13 +240,18 @@ namespace vip.popop.pcr.GHelper.Modules {
                     } else {
                         string reply = Environment.NewLine + "挑战者  类型  有效时间" + Environment.NewLine;
                         foreach (long req in Requests[groupId][fromId]) {
-                            Ai.Reply(e, req);
                             reply += e.FromGroup.GetGroupMemberInfo(req).Nick + " " +
                                 (Challenges[groupId][req].bigPin ? $"{(Challenges[groupId][req].stack == 1 ? "" : $"{Challenges[groupId][req].stack}倍")}大拼点" : "拼点") + " "
                                 + Math.Ceiling(Challenges[groupId][req].timeLeft / 60000.0) + "分钟" + Environment.NewLine;
                         }
                         Ai.Reply(e, " 目前你收到的战书有: ", reply);
                     }
+                } else if (Commands[6].Match(msg).Success && e.FromGroup.GetGroupMemberInfo(e.FromQQ).MemberType == QQGroupMemberType.Creator) {
+                    foreach (long mem in Prison[groupId]) {
+                        e.FromGroup.RemoveGroupMemberBanSpeak(mem);
+                    }
+                    Prison.Clear();
+                    Ai.Reply(e, e.FromQQ.CQCode_At(), " 已全部解除禁言w");
                 }
             } catch (KeyNotFoundException) { }
         }

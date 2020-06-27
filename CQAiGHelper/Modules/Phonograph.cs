@@ -79,7 +79,7 @@ namespace vip.popop.pcr.GHelper.Modules {
                 if (m.Groups[1].Value.Trim(' ').Length == 0) {
                     Ai.Reply(e, atCode == null ? "" : atCode.ToSendString(), " 没告诉我歌名我怎么搜索呀");
                 } else {
-                    Music music = FindBetter(Client, m.Groups[1].Value.Trim(' '), m.Groups[2].Value.Trim(' '));
+                    Music music = FindBetter(Client, m.Groups[1].Value.Trim(' ').Replace('\n', ' ').Replace('&', ' '), m.Groups[2].Value.Trim(' ').Replace('\n', ' ').Replace('&', ' '));
                     ClientType client = music.Client;
                     if (music.Stat == Music.Status.E404A) {
                         if (music.StatText != null) Ai.Reply(e, atCode == null ? "" : atCode.ToSendString(), $" 找不到这个名字的歌曲，你是不是想搜索{ m.Groups[2].Value.Trim(' ') }呢？");
@@ -96,7 +96,7 @@ namespace vip.popop.pcr.GHelper.Modules {
                 if (m.Groups[1].Value.Trim(' ').Length == 0) {
                     Ai.Reply(e, atCode == null ? "" : atCode.ToSendString(), " 没告诉我歌名我怎么搜索呀");
                 } else {
-                    Music music = FindBetter(Client, m.Groups[1].Value.Trim(' '));
+                    Music music = FindBetter(Client, m.Groups[1].Value.Trim(' ').Replace('\n', ' ').Replace('&', ' '));
                     ClientType client = music.Client;
                     if (music.Stat == Music.Status.E404A) {
                         if (m.Groups[2].Value.Trim(' ').Length > 0) Ai.Reply(e, atCode == null ? "" : atCode.ToSendString(), $" 找不到这个名字的歌曲，你是不是想搜索{ m.Groups[2].Value.Trim(' ') }呢？");
@@ -123,16 +123,23 @@ namespace vip.popop.pcr.GHelper.Modules {
                     extracted = true
                 };
             Match m;
-            if ((m = new Regex($"{fac[0]}(.*){fac[fac.Length - 1]}").Match(s)).Success) {
+            try {
+                if ((m = new Regex($"{fac[0]}(.*){fac[fac.Length - 1]}").Match(s)).Success) {
+                    return new ExtractRes {
+                        res = $"{fac[0]}{m.Groups[1].Value ?? ""}{fac[fac.Length - 1]}",
+                        extracted = true
+                    };
+                }
                 return new ExtractRes {
-                    res = $"{fac[0]}{m.Groups[1].Value ?? ""}{fac[fac.Length - 1]}",
-                    extracted = true
+                    res = s,
+                    extracted = false
+                };
+            } catch (ArgumentException) {
+                return new ExtractRes {
+                    res = s,
+                    extracted = false
                 };
             }
-            return new ExtractRes {
-                res = s,
-                extracted = false
-            };
         }
 
         private Music FindBetter(ClientType client, string s, string author = null) {

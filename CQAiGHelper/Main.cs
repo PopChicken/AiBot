@@ -7,10 +7,14 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.ComponentModel;
 using vip.popop.pcr.GHelper.Modules;
+using Native.Sdk.Cqp;
+using vip.popop.pcr.GHelper.Modules.Auth;
 
 namespace vip.popop.pcr.GHelper {
 
     public class Configuration {
+
+        public long Master { get; set; }
 
         public bool IsLinkGeneratorEnabled { get; set; }
 
@@ -21,6 +25,8 @@ namespace vip.popop.pcr.GHelper {
         public bool IsRepeaterEnabled { get; set; }
 
         public bool IsSoloEnabled { get; set; }
+
+        public bool IsForestEnabled { get; set; }
 
         public PhonographConf Phonograph { get; set; }
 
@@ -75,6 +81,10 @@ namespace vip.popop.pcr.GHelper {
 
     }
 
+    public class ForestConf {
+
+    }
+
     public static class Main {
 
         private static Configuration Config;
@@ -89,7 +99,13 @@ namespace vip.popop.pcr.GHelper {
 
         private static Solo solo;
 
-        public static void Initialize() {
+        private static Forest forest;
+
+        private static Account accountManager;
+
+        private static LetThemOut letTheyOut;
+
+        public static void Initialize(CQLog log) {
             if (!File.Exists("config.json")) {
                 FileStream configFile = new FileStream("config.json", FileMode.OpenOrCreate);
                 StreamReader reader = new StreamReader(
@@ -113,6 +129,11 @@ namespace vip.popop.pcr.GHelper {
 
             Event_GroupMessage.ClearHandler();
             Event_PrivateMessage.ClearHandler();
+
+            accountManager = new Account {
+                logger = log
+            };
+            accountManager.OnInitialize();
 
             if (Config.IsPhonographEnabled) {
                 phonograph = new Phonograph {
@@ -153,6 +174,18 @@ namespace vip.popop.pcr.GHelper {
                 };
                 solo.OnInitialize();
             }
+
+            if (Config.IsForestEnabled) {
+                forest = new Forest() {
+                    Logger = log
+                };
+                forest.OnInitialize();
+            }
+
+            //letTheyOut = new LetThemOut {
+
+            //};
+            //letTheyOut.OnInitialize();
         }
     }
 }
